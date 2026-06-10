@@ -1,0 +1,9 @@
+fastf1>=3.4
+pandas>=2.2
+pyarrow>=16.0
+numpy>=1.26
+lightgbm>=4.3
+scikit-learn>=1.4
+streamlit>=1.35
+joblib>=1.4
+tqdm>=4.66

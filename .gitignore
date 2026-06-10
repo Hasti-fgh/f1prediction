@@ -1,0 +1,35 @@
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+.env
+
+data/cache/
+data/raw/
+data/features/
+data/live/
+data/*.log
+*.parquet
+*.feather
+
+models/*.pkl
+models/*.joblib
+models/*.txt
+
+.streamlit/secrets.toml
+.ipynb_checkpoints/
+
+.DS_Store
+.idea/
+.vscode/
+Thumbs.db
+
+# local agent state & throwaway model backup (not part of the project)
+.claude/
+models_allyears_backup/
+
+# committed showcase assets are an explicit exception to the *.png-in-data rule
+!assets/
+!assets/*.png
