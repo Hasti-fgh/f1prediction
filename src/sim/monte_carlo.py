@@ -184,6 +184,10 @@ class MonteCarlo:
         tire_age = np.tile(np.array([d.tire_age for d in drivers], dtype=int), (N, 1))
         compound = np.tile(comp0, (N, 1))
         stint = np.tile(np.array([d.stint_number for d in drivers], dtype=int), (N, 1))
+        # Pit count evolves per sim so the DNF hazard sees a realistic stop count;
+        # frozen at the snapshot value it would feed the model the out-of-distribution
+        # "never pitted at 90% distance" combo (only ever seen for early retirements).
+        pit_count = np.tile(np.array([d.pit_count for d in drivers], dtype=int), (N, 1))
         # Planned stint length (with jitter) before the next stop.
         stint_target = np.array([[_STINT_NOMINAL.get(c, 26) for c in comp0]] * N) \
             + rng.integers(-4, 5, size=(N, D))
@@ -230,13 +234,13 @@ class MonteCarlo:
                 "compound": [next(k for k, v in spec.COMPOUND_CODES.items() if v == c)
                              for c in np.round(np.median(np.where(alive, compound, comp0), axis=0)).astype(int)],
                 "tire_age_laps": np.median(med_age, axis=0),
-                "stint_number": [d.stint_number for d in drivers],
+                "stint_number": np.median(stint, axis=0),
                 "position": [d.position for d in drivers],
                 "gap_to_ahead": 1.5,
                 "race_progress": lap / state.total_laps,
                 "sc_active": int(False),
                 "vsc_active": int(False),
-                "pit_count": [d.pit_count for d in drivers],
+                "pit_count": np.median(pit_count, axis=0),
                 "elo_pre": [d.elo_pre for d in drivers],
             })
             p_dnf = self.pred.predict_dnf(dnf_rows)  # shape (D,)
@@ -286,6 +290,7 @@ class MonteCarlo:
             compound = np.where(need_pit, new_comp, compound)
             tire_age = np.where(need_pit, 0, tire_age + 1)
             stint = np.where(need_pit, stint + 1, stint)
+            pit_count = np.where(need_pit, pit_count + 1, pit_count)
             stint_target = np.where(
                 need_pit,
                 np.array([[_STINT_NOMINAL.get(int(c), 26) for c in row] for row in compound])
