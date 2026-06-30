@@ -1,0 +1,51 @@
+{
+  "year": 2026,
+  "round": 7,
+  "event": "Barcelona_Grand_Prix",
+  "total_laps": 66,
+  "predicted_at": "2026-06-30T16:36:00+00:00",
+  "kind": "backfill",
+  "runs": 10000,
+  "prediction": [
+    {
+      "pos": 1,
+      "driver": "RUS",
+      "grid": 1,
+      "p_win": 0.2156
+    },
+    {
+      "pos": 2,
+      "driver": "HAM",
+      "grid": 2,
+      "p_win": 0.1614
+    },
+    {
+      "pos": 3,
+      "driver": "ANT",
+      "grid": 3,
+      "p_win": 0.1194
+    },
+    {
+      "pos": 4,
+      "driver": "NOR",
+      "grid": 4,
+      "p_win": 0.1085
+    },
+    {
+      "pos": 5,
+      "driver": "VER",
+      "grid": 5,
+      "p_win": 0.0947
+    }
+  ],
+  "actual": {
+    "winner": "HAM",
+    "podium": [
+      "HAM",
+      "RUS",
+      "NOR"
+    ],
+    "top_pick_correct": false,
+    "predicted_winner_finish": 2
+  }
+}

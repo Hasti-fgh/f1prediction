@@ -1,0 +1,51 @@
+{
+  "year": 2026,
+  "round": 3,
+  "event": "Japanese_Grand_Prix",
+  "total_laps": 53,
+  "predicted_at": "2026-06-30T16:34:41+00:00",
+  "kind": "backfill",
+  "runs": 10000,
+  "prediction": [
+    {
+      "pos": 1,
+      "driver": "ANT",
+      "grid": 1,
+      "p_win": 0.1886
+    },
+    {
+      "pos": 2,
+      "driver": "RUS",
+      "grid": 2,
+      "p_win": 0.1751
+    },
+    {
+      "pos": 3,
+      "driver": "LEC",
+      "grid": 4,
+      "p_win": 0.1257
+    },
+    {
+      "pos": 4,
+      "driver": "PIA",
+      "grid": 3,
+      "p_win": 0.1202
+    },
+    {
+      "pos": 5,
+      "driver": "NOR",
+      "grid": 5,
+      "p_win": 0.0967
+    }
+  ],
+  "actual": {
+    "winner": "ANT",
+    "podium": [
+      "ANT",
+      "PIA",
+      "LEC"
+    ],
+    "top_pick_correct": true,
+    "predicted_winner_finish": 1
+  }
+}

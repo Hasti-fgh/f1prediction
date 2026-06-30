@@ -69,7 +69,9 @@ def train_pace(laps: pd.DataFrame) -> tuple[lgb.Booster, dict]:
     X = spec.as_model_frame(df, spec.PACE_FEATURES)
     y = df["lap_time_s"].astype(float)
     params = {"objective": "regression", "metric": "l2", "learning_rate": 0.05,
-              "num_leaves": 63, "min_data_in_leaf": 100, "feature_fraction": 0.9, **_COMMON}
+              "num_leaves": 63, "min_data_in_leaf": 100, "feature_fraction": 0.9,
+              "monotone_constraints": spec.monotone_constraints(spec.PACE_FEATURES, spec.PACE_MONOTONE),
+              **_COMMON}
     booster = _fit(X, y, spec.PACE_FEATURES, params, rounds=400)
     resid = y.to_numpy() - booster.predict(X)
     meta = {

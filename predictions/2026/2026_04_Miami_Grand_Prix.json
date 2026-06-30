@@ -1,0 +1,51 @@
+{
+  "year": 2026,
+  "round": 4,
+  "event": "Miami_Grand_Prix",
+  "total_laps": 57,
+  "predicted_at": "2026-06-30T16:34:58+00:00",
+  "kind": "backfill",
+  "runs": 10000,
+  "prediction": [
+    {
+      "pos": 1,
+      "driver": "ANT",
+      "grid": 1,
+      "p_win": 0.235
+    },
+    {
+      "pos": 2,
+      "driver": "VER",
+      "grid": 2,
+      "p_win": 0.1974
+    },
+    {
+      "pos": 3,
+      "driver": "LEC",
+      "grid": 3,
+      "p_win": 0.1281
+    },
+    {
+      "pos": 4,
+      "driver": "NOR",
+      "grid": 4,
+      "p_win": 0.1146
+    },
+    {
+      "pos": 5,
+      "driver": "RUS",
+      "grid": 5,
+      "p_win": 0.0898
+    }
+  ],
+  "actual": {
+    "winner": "ANT",
+    "podium": [
+      "ANT",
+      "NOR",
+      "PIA"
+    ],
+    "top_pick_correct": true,
+    "predicted_winner_finish": 1
+  }
+}

@@ -1,6 +1,6 @@
 # F1 Race Winner Prediction Progress Log
 
-_Last updated: 2026-06-20_
+_Last updated: 2026-07-01_
 
 ---
 
@@ -159,7 +159,7 @@ All target seasons fetched, 0 errors. 159 events × (Q+R) = 318 sessions on disk
 | 2019 | 21 | 2023 | 22 |
 | 2020 | 17 (COVID) | 2024 | 24 |
 | 2021 | 22 | 2025 | 24 |
-| 2022 | 22 | 2026 | 7 (through Barcelona) |
+| 2022 | 22 | 2026 | 8 (through Austria) |
 
 Features rebuilt (175,044 lap-rows) and all 4 boosters retrained on the full
 history. Re-run anytime; fetch is idempotent:
@@ -248,6 +248,41 @@ Data lake is now updated through round 7 (Barcelona). Forecast the next race wit
 python scripts/predict_prerace.py --year 2026 --round 8
 ```
 
+## Austria (round 8) and the pace-model monotonicity fix (2026-07-01)
+
+Updated the data lake through round 8 (Austria, raced 2026-06-28) and recorded the
+pre-race forecast. The first forecast looked wrong: it favoured cars starting P6-P8
+(Piastri, Hadjar, Norris) over the front row and rated pole-sitter Russell only
+6th, on a low-overtaking track where track position should stick. The reported
+`overtake_prob` of 0.04 was a red herring (its track ranking is correct:
+Monaco 0.008 < Austria 0.040 < Spa 0.052). Digging in turned up the real cause.
+
+**The pace model had a non-physical response surface.** Holding everything else
+fixed, it predicted higher `elo_pre` as *slower* above ~1750 (so Verstappen's
+field-leading rating got buried) and grid P8 as *faster* than pole. These two are
+the model's lowest-importance features (pace is dominated by `laps_remaining`,
+`race_progress` and temperature), but at lap 0 they are the *only* features that
+differ between drivers, so the spurious surface drove the entire grid-only ranking
+and inverted it. It never showed up in the in-race backtest because there the
+accumulated time gap dominates.
+
+**Fix:** monotone constraints on the pace regressor (`spec.PACE_MONOTONE`, applied
+in `train_pace`): a stronger driver is never predicted slower (`elo_pre` -1), a car
+starting further back is never predicted faster (`position` +1), older tyres are
+never faster (`tire_age_laps` +1). After retraining, pace MAE improved
+(1.528 -> 1.477 s), the 2025 in-race backtest stayed neutral (Brier flat ~0.025),
+and the Austria forecast flipped from Piastri (P7, miss) to Russell (pole, 20%) -
+correct, Russell won. Regenerating all eight 2026 forecasts with the fixed model
+lifted the backfill top-pick rate from 4/8 to 5/8.
+
+**Running-position DNF fix done** (item 5 below, now closed). The static-grid
+`position` limitation noted in the Barcelona section is resolved: the simulator now
+feeds the per-sim *running* order into the DNF row, plus a base-rate calibration
+that anchors the field-average per-lap retirement hazard to the empirical ~0.0022
+(the booster over-extrapolated on the long-horizon feature combos a full-race
+simulation produces, which previously retired most of the field and let a
+back-marker "win"). 2025 top1@90 in testing went up, not down.
+
 ## Next step
 
 Open decisions / candidate directions:
@@ -258,4 +293,4 @@ Open decisions / candidate directions:
 3. **Undercut/overcut** strategy modelling for sharper final-stint calls.
 4. **Phase 8 automation** (cron/n8n) for post-quali ingest, pre-race snapshot,
    live loop. Building blocks (`src.live.runner`, idempotent fetchers) are ready.
-5. **Running-position DNF fix** in the simulator (see Barcelona note above).
+5. ~~**Running-position DNF fix** in the simulator~~ — done (2026-07-01).

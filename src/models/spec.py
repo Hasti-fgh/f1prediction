@@ -55,6 +55,21 @@ PIT_FEATURES = [
 
 CATEGORICAL = {"compound"}
 
+# Monotonic priors for the pace regressor. Without them the booster carved out
+# non-physical interactions among its weakest features -- elo 1850 predicted
+# slower than elo 1650, and grid P8 predicted faster than pole. Those artifacts
+# are invisible in an in-race replay (the accumulated time gap dominates) but
+# corrupt a lap-0 pre-race forecast, where ``position`` and ``elo_pre`` are the
+# ONLY features that differ between drivers -- so the spurious surface inverts
+# the grid. Constraining the sign makes the priors physical: a stronger driver
+# is never predicted slower, a car starting further back is never predicted
+# faster, and older tyres are never faster.
+PACE_MONOTONE = {
+    "elo_pre": -1,        # higher skill -> lower (faster) lap time
+    "position": +1,       # further back -> not faster
+    "tire_age_laps": +1,  # older tyres -> not faster
+}
+
 # Stable integer encoding so a model saved as a plain-text LightGBM booster keeps
 # the same categorical mapping at inference time (no sklearn pickle required).
 COMPOUND_CODES = {
@@ -75,6 +90,15 @@ def encode_compound(s: pd.Series) -> pd.Series:
 def categorical_indices(features: list[str]) -> list[int]:
     """Positional indices of categorical columns, for LightGBM's API."""
     return [i for i, f in enumerate(features) if f in CATEGORICAL]
+
+
+def monotone_constraints(features: list[str], mapping: dict[str, int]) -> list[int]:
+    """Per-feature monotone constraint vector (-1/0/+1) aligned to ``features``.
+
+    Features absent from ``mapping`` are unconstrained (0), so a model that does
+    not need any constraints passes an all-zero vector and is unaffected.
+    """
+    return [mapping.get(f, 0) for f in features]
 
 
 def as_model_frame(df: pd.DataFrame, features: list[str]) -> pd.DataFrame:

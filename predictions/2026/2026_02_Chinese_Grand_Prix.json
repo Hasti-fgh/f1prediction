@@ -1,0 +1,51 @@
+{
+  "year": 2026,
+  "round": 2,
+  "event": "Chinese_Grand_Prix",
+  "total_laps": 56,
+  "predicted_at": "2026-06-30T16:34:26+00:00",
+  "kind": "backfill",
+  "runs": 10000,
+  "prediction": [
+    {
+      "pos": 1,
+      "driver": "ANT",
+      "grid": 1,
+      "p_win": 0.2179
+    },
+    {
+      "pos": 2,
+      "driver": "RUS",
+      "grid": 2,
+      "p_win": 0.1575
+    },
+    {
+      "pos": 3,
+      "driver": "HAM",
+      "grid": 3,
+      "p_win": 0.1179
+    },
+    {
+      "pos": 4,
+      "driver": "LEC",
+      "grid": 4,
+      "p_win": 0.1034
+    },
+    {
+      "pos": 5,
+      "driver": "PIA",
+      "grid": 5,
+      "p_win": 0.0881
+    }
+  ],
+  "actual": {
+    "winner": "ANT",
+    "podium": [
+      "ANT",
+      "RUS",
+      "HAM"
+    ],
+    "top_pick_correct": true,
+    "predicted_winner_finish": 1
+  }
+}

@@ -12,24 +12,58 @@ from src.config import ELO_INITIAL
 from src.sim.monte_carlo import DriverState, RaceState
 
 
-def track_overtake_prob(event_laps: pd.DataFrame) -> float:
-    """Estimate how easy on-track passing is at this circuit, from the race itself.
+# The measured on-track pass rate (genuine order-flips per green car-lap) is itself
+# a sound per-lap pass probability: a car running close to the one ahead converts
+# at roughly this rate, so over a full stint it matches the real number of passes.
+# Hence scale 1.0. The floor is deliberately tiny so a near-unpassable circuit
+# (Monaco ~0.007) stays sticky over a full race instead of compounding to a
+# certain pass; easy circuits (Spa ~0.05) remain freely passable.
+_OVERTAKE_SCALE = 1.0
+_OVERTAKE_FALLBACK = 0.06
+_OVERTAKE_CLIP = (0.005, 0.6)
 
-    We count green-flag, non-pit laps where a driver *gained* a track position
-    versus the previous lap, as a fraction of all car-laps. Processional circuits
-    (Monaco) yield a tiny rate; high-overtaking ones (Spa, Monza) a large one.
-    The rate is scaled into a per-lap pass probability used by the simulator.
+
+def track_overtake_prob(event_laps: pd.DataFrame) -> float:
+    """Estimate how easy on-track passing is at this circuit, from real races.
+
+    Counts genuine on-track overtakes: pairs of cars whose running order flips
+    between consecutive laps while *both* are on track (not pitting, not under a
+    safety car / VSC). The earlier version counted any position a car gained
+    versus the previous lap, which also captured cars inheriting positions when a
+    rival pitted or retired -- at a street circuit like Monaco that pit/DNF churn
+    is most of the apparent "overtaking", so it badly overstated how passable the
+    track is. Restricting to order-flips between cars that both stayed out removes
+    that confound. The rate is scaled into a per-lap pass probability.
     """
-    df = event_laps.sort_values(["driver", "lap"]).copy()
-    df["prev_pos"] = df.groupby("driver")["position"].shift(1)
-    gained = (
-        (pd.to_numeric(df["position"], errors="coerce") < pd.to_numeric(df["prev_pos"], errors="coerce"))
-        & (df["in_pit"] == 0)
-        & (df["sc_active"] == 0)
-        & (df["vsc_active"] == 0)
-    )
-    rate = float(gained.sum()) / max(len(df), 1)  # overtakes per car-lap
-    return float(np.clip(rate * 6.0, 0.03, 0.6))
+    df = event_laps.copy()
+    df["position"] = pd.to_numeric(df["position"], errors="coerce")
+    in_pit = pd.to_numeric(df.get("in_pit"), errors="coerce").fillna(0).astype(int)
+    neut = (pd.to_numeric(df.get("sc_active"), errors="coerce").fillna(0).astype(int)
+            | pd.to_numeric(df.get("vsc_active"), errors="coerce").fillna(0).astype(int))
+    df["_block"] = (in_pit > 0) | (neut > 0)
+
+    overtakes = 0
+    car_laps = 0
+    prev: dict[str, float] | None = None
+    for _, cur_df in df.groupby("lap"):
+        cur = dict(zip(cur_df["driver"], cur_df["position"]))
+        blocked = dict(zip(cur_df["driver"], cur_df["_block"]))
+        if prev is not None:
+            elig = [d for d in cur
+                    if d in prev and not blocked.get(d, True)
+                    and pd.notna(cur[d]) and pd.notna(prev[d])]
+            if len(elig) >= 2:
+                pp = np.array([prev[d] for d in elig])
+                cp = np.array([cur[d] for d in elig])
+                # a pair (i, j) flips when i was behind j last lap and ahead now
+                overtakes += int(((pp[:, None] > pp[None, :]) & (cp[:, None] < cp[None, :])).sum())
+                car_laps += len(elig)
+        prev = cur
+
+    if car_laps == 0:
+        return _OVERTAKE_FALLBACK
+    rate = overtakes / car_laps
+    return float(np.clip(rate * _OVERTAKE_SCALE, *_OVERTAKE_CLIP))
 
 
 def event_keys(laps: pd.DataFrame) -> pd.DataFrame:

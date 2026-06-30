@@ -1,0 +1,51 @@
+{
+  "year": 2026,
+  "round": 6,
+  "event": "Monaco_Grand_Prix",
+  "total_laps": 78,
+  "predicted_at": "2026-06-30T16:35:41+00:00",
+  "kind": "backfill",
+  "runs": 10000,
+  "prediction": [
+    {
+      "pos": 1,
+      "driver": "VER",
+      "grid": 2,
+      "p_win": 0.2113
+    },
+    {
+      "pos": 2,
+      "driver": "HAM",
+      "grid": 3,
+      "p_win": 0.14
+    },
+    {
+      "pos": 3,
+      "driver": "ANT",
+      "grid": 1,
+      "p_win": 0.1256
+    },
+    {
+      "pos": 4,
+      "driver": "LEC",
+      "grid": 4,
+      "p_win": 0.1134
+    },
+    {
+      "pos": 5,
+      "driver": "RUS",
+      "grid": 6,
+      "p_win": 0.0903
+    }
+  ],
+  "actual": {
+    "winner": "ANT",
+    "podium": [
+      "ANT",
+      "HAM",
+      "HAD"
+    ],
+    "top_pick_correct": false,
+    "predicted_winner_finish": 22
+  }
+}

@@ -36,6 +36,7 @@ _STINT_NOMINAL = {0: 18, 1: 26, 2: 34, 3: 22, 4: 18, 5: 26, 6: 26}
 _MAX_AGE = 60  # lookup-table cap for tyre age
 _PACE_AGE_CAP = 45  # clamp age fed to the pace model (training data thins out beyond this)
 _MIN_LAPS_TO_PIT = 8  # never pit if fewer than this many laps remain (no payback)
+_DNF_PER_LAP_CAP = 0.05  # hard ceiling on any single car's per-lap retirement hazard
 _SC_DURATION = (2, 5)  # uniform laps a neutralisation lasts
 _SC_LAP_PENALTY = 1.35  # SC laps run ~35% slower than green pace
 _OVERTAKE_MIN_GAP = 0.7  # seconds a held-up car is clamped behind the car ahead
@@ -45,7 +46,9 @@ _DEFAULT_OVERTAKE_PROB = 0.30  # per-lap *base* chance a faster car completes a 
 # rubber (just pitted, or saved its tires) punches through DRS trains far more
 # easily -- this is what lets late fresh-tire passes resolve correctly.
 _TIRE_OVERTAKE_K = 0.02
-_OVERTAKE_PROB_BOUNDS = (0.05, 0.95)  # clamp so a pass is never certain nor impossible
+_OVERTAKE_PROB_BOUNDS = (0.005, 0.95)  # clamp so a pass is never certain; floor tiny so
+# processional circuits (Monaco) stay sticky over a full race instead of the per-lap
+# pass chance compounding to a near-certain pass.
 
 # --- Dynamic weather -------------------------------------------------------- #
 # Per-lap rain transition hazards, estimated from the lap data (rain starts
@@ -121,6 +124,11 @@ class MonteCarlo:
         self.n_runs = n_runs
         self.form_sigma = form_sigma
         self.rng = np.random.default_rng(seed)
+        # Empirical per-lap retirement rate (~0.0022, i.e. ~12% per car-race over a
+        # 60-lap average). The trained DNF booster overpredicts badly on the
+        # long-horizon feature combos a full-race simulation produces, so we anchor
+        # the field-average per-lap hazard to this base rate (see _calibrate_dnf).
+        self.dnf_base_rate = float(predictors.meta.get("dnf", {}).get("base_rate", 0.0022))
 
     # ------------------------------------------------------------------ #
     def _pace_table(self, state: RaceState, lap: int, drivers: list[DriverState],
@@ -156,6 +164,23 @@ class MonteCarlo:
         frame = pd.DataFrame(rows)
         preds = self.pred.predict_pace(frame)
         return preds.reshape(D, len(compounds), len(ages))
+
+    # ------------------------------------------------------------------ #
+    def _calibrate_dnf(self, p_dnf: np.ndarray) -> np.ndarray:
+        """Anchor the field-average per-lap DNF hazard to the empirical base rate.
+
+        The booster is trained per-lap, but a full-race simulation queries it on
+        feature combos far from its training support (e.g. a leader still on the
+        original tyres at 90% distance), where it extrapolates to wildly high
+        hazards. Compounded over 60-78 laps that retires almost the whole field
+        and lets a back-marker "win". We rescale multiplicatively so the mean
+        per-lap hazard equals the historical base rate while keeping the model's
+        *relative* ordering of who is more or less likely to retire.
+        """
+        m = float(np.mean(p_dnf))
+        if m > 1e-9:
+            p_dnf = p_dnf * (self.dnf_base_rate / m)
+        return np.clip(p_dnf, 0.0, _DNF_PER_LAP_CAP)
 
     # ------------------------------------------------------------------ #
     def simulate(self, state: RaceState) -> SimResult:
@@ -230,12 +255,18 @@ class MonteCarlo:
 
             # --- DNF hazard (per driver this lap) ----------------------- #
             med_age = np.where(alive, tire_age, 0)
+            # Current running order (1 = leader) per sim. Feeding the *running*
+            # position keeps the DNF hazard in-distribution; the static grid
+            # position would make back-markers look crash-proof and leaders too
+            # risky, which at low-overtaking tracks let a P19 car "win".
+            t_now = np.where(alive, cum_time, np.inf)
+            run_pos = np.argsort(np.argsort(t_now, axis=1), axis=1) + 1
             dnf_rows = pd.DataFrame({
                 "compound": [next(k for k, v in spec.COMPOUND_CODES.items() if v == c)
                              for c in np.round(np.median(np.where(alive, compound, comp0), axis=0)).astype(int)],
                 "tire_age_laps": np.median(med_age, axis=0),
                 "stint_number": np.median(stint, axis=0),
-                "position": [d.position for d in drivers],
+                "position": np.median(run_pos, axis=0),
                 "gap_to_ahead": 1.5,
                 "race_progress": lap / state.total_laps,
                 "sc_active": int(False),
@@ -244,6 +275,7 @@ class MonteCarlo:
                 "elo_pre": [d.elo_pre for d in drivers],
             })
             p_dnf = self.pred.predict_dnf(dnf_rows)  # shape (D,)
+            p_dnf = self._calibrate_dnf(p_dnf)
             # Wet running raises the retirement hazard (spins/aquaplaning).
             p_dnf_sim = p_dnf[None, :] * np.where(wet[:, None], _WET_DNF_MULT, 1.0)
             # No retirements while the field is neutralised.

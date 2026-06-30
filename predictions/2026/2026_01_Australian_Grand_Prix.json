@@ -1,0 +1,51 @@
+{
+  "year": 2026,
+  "round": 1,
+  "event": "Australian_Grand_Prix",
+  "total_laps": 57,
+  "predicted_at": "2026-06-30T16:34:11+00:00",
+  "kind": "backfill",
+  "runs": 10000,
+  "prediction": [
+    {
+      "pos": 1,
+      "driver": "RUS",
+      "grid": 1,
+      "p_win": 0.238
+    },
+    {
+      "pos": 2,
+      "driver": "ANT",
+      "grid": 2,
+      "p_win": 0.163
+    },
+    {
+      "pos": 3,
+      "driver": "LEC",
+      "grid": 4,
+      "p_win": 0.0982
+    },
+    {
+      "pos": 4,
+      "driver": "HAD",
+      "grid": 3,
+      "p_win": 0.0889
+    },
+    {
+      "pos": 5,
+      "driver": "PIA",
+      "grid": 5,
+      "p_win": 0.0781
+    }
+  ],
+  "actual": {
+    "winner": "RUS",
+    "podium": [
+      "RUS",
+      "ANT",
+      "LEC"
+    ],
+    "top_pick_correct": true,
+    "predicted_winner_finish": 1
+  }
+}
